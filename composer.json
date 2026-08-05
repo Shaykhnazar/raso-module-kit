@@ -5,10 +5,16 @@
     "license": "proprietary",
     "require": {
         "php": "^8.3",
+        "firebase/php-jwt": "^7.0",
+        "illuminate/contracts": "^13.0",
+        "illuminate/http": "^13.0",
+        "illuminate/routing": "^13.0",
+        "illuminate/support": "^13.0",
         "symfony/uid": "^7.0"
     },
     "require-dev": {
         "deptrac/deptrac": "^4.0",
+        "illuminate/cache": "^13.0",
         "laravel/pint": "^1.18",
         "pestphp/pest": "^4.0",
         "phpstan/phpstan": "^2.0"
@@ -44,6 +50,13 @@
             "pestphp/pest-plugin": true
         },
         "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Raso\\ModuleKit\\Laravel\\ModuleKitServiceProvider"
+            ]
+        }
     },
     "minimum-stability": "stable",
     "prefer-stable": true

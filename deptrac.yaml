@@ -13,12 +13,33 @@ deptrac:
         - type: directory
           value: 'src/Domain/.*'
 
+    - name: Auth
+      collectors:
+        - type: directory
+          value: 'src/Auth/.*'
+
+    - name: Laravel
+      collectors:
+        - type: directory
+          value: 'src/Laravel/.*'
+
     - name: Testing
       collectors:
         - type: directory
           value: 'src/Testing/.*'
 
   ruleset:
+    # Domain hech narsaga bog'lanmaydi — sof PHP.
     Domain: ~
+    # Auth Domain'ni O'QIYDI, teskarisi YO'Q: `RasoUser` Laravel'ni bilmaydi,
+    # `RasoUserIdentity` adapteri esa aynan shu chegarada turadi.
+    Auth:
+      - Domain
+    # Laravel — faqat sim-ulash (service provider).
+    Laravel:
+      - Auth
+      - Domain
+    # Testing prod kodiga suyanadi, aksincha emas.
     Testing:
       - Domain
+      - Auth
