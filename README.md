@@ -14,7 +14,7 @@ shu paketni o'rnatadi va infratuzilmani noldan yozmaydi.
 |---|---|---|
 | **MP-01** | Domen primitivlari + sifat gate shablonlari | ✅ **tugadi** |
 | **MP-02** | Offline JWT tekshiruvi, JWKS kesh, scope middleware | ✅ **tugadi** |
-| MP-03 | `OutboxRelay`, `EventConsumer`, `UserDeletedListener` | ⏳ |
+| **MP-03** | Outbox relay, idempotent iste'mol, «meni unut» kontrakti | ✅ **tugadi** |
 
 ---
 
@@ -73,9 +73,43 @@ RASO_MODULE_KEY=chat
 RASO_JWKS_URI=https://api.raso.uz/oauth/jwks
 ```
 
+### `Raso\ModuleKit\Events` — servislararo hodisalar
+
+| Klass | Nima |
+|---|---|
+| `OutboxRelay` | Outbox → stream. **Tranzaksiyadan tashqarida** — yetkazish nosozligi biznes amalini yiqitmaydi. `max_attempts` dan keyin xabar chetga suriladi (buzuq xabar navbatni band qilmasin) |
+| `EventConsumer` | Idempotent. **Belgilash va qayta ishlash bitta tranzaksiyada** — yiqilsa rollback, xabar qaytadan yetkaziladi |
+| `UserDeletedListener` | **Abstrakt, har modul uchun majburiy.** `purge()` ni bajarmasa modul ishlamaydi |
+| `EventNames` | Barqaror nomlar. Qo'shish mumkin, **qayta nomlash mumkin emas** |
+| `Laravel\RedisStreamPublisher` | `XADD` + `MAXLEN ~` |
+
+Modul o'zi bog'laydigan portlar: `OutboxStore`, `ConsumedEvents`, `DeadLetters`
+(ular modulning **o'z jadvallariga** tayanadi). Bog'lamasa —
+`php artisan raso:module:doctor` yiqiladi va **CI qizil bo'ladi**.
+
+Buyruqlar: `raso:module:doctor` (CI'da) · `raso:module:purge-user {sub}` (qo'lda o'chirish).
+
+#### «Meni unut» kontrakt testi — har modulda majburiy
+
+```php
+it('foydalanuvchi o\'chirilganda modul ma\'lumoti qolmaydi', function () {
+    UserDeletionContract::assertPurges(
+        listener: app(ChatUserDeletedListener::class),
+        seed: fn (PublicId $u) => seedThreadsFor($u),
+        remaining: fn (PublicId $u): int => DB::table('chat_threads')->where('user_ref', $u->value)->count(),
+    );
+});
+```
+
+Kontrakt uch narsani tekshiradi: ma'lumot **o'chdimi** · begona odamning
+ma'lumoti **tegilmadimi** (juda keng o'chirish ham xato) · test o'zi
+**ishonchlimi** (`seed` haqiqatan ma'lumot yaratdimi).
+
 ### `Raso\ModuleKit\Testing`
 
 - `AuthKit::make()` — soxta IdP + xotiradagi kesh + verifier, bitta chaqiruvda
+- `EventKit::make()` — xotiradagi outbox, publisher, reestr, DLQ va tranzaksiya (**Redis ham, Postgres ham kerak emas**)
+- `UserDeletionContract::assertPurges()` — «meni unut» kontrakti
 - `FakeJwtIssuer` — RSA kalit yasaydi, token imzolaydi, `JwksFetcher` portini bajaradi (**testlar tarmoqqa chiqmaydi**)
 - `RasoUserFactory::make([...])` — determinstik test foydalanuvchisi
 - global `fakeRasoUser([...])` — composer `autoload.files` orqali hamma joyda

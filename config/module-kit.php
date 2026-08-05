@@ -31,4 +31,25 @@ return [
 
     /* Soat farqi uchun bag'rikenglik (sekund). */
     'leeway' => (int) env('RASO_JWT_LEEWAY', 30),
+
+    'events' => [
+        /*
+         * Servislararo umumiy Redis Stream. Hamma modul shu stream'ni o'qiydi,
+         * har biri O'Z consumer group'i bilan — shuning uchun bitta modul
+         * xabarni «yeb qo'ymaydi».
+         */
+        'stream' => env('RASO_EVENT_STREAM', 'raso.events'),
+
+        'redis_connection' => env('RASO_EVENT_REDIS', 'default'),
+
+        /*
+         * Stream cheksiz o'smasin. Uzoq muddatli manba — outbox jadvali,
+         * stream emas: xabar yetkazilgach unga ehtiyoj qolmaydi.
+         */
+        'max_length' => (int) env('RASO_EVENT_STREAM_MAXLEN', 100_000),
+
+        'relay_batch' => (int) env('RASO_RELAY_BATCH', 100),
+
+        'relay_max_attempts' => (int) env('RASO_RELAY_MAX_ATTEMPTS', 5),
+    ],
 ];

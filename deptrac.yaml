@@ -18,6 +18,11 @@ deptrac:
         - type: directory
           value: 'src/Auth/.*'
 
+    - name: Events
+      collectors:
+        - type: directory
+          value: 'src/Events/.*'
+
     - name: Laravel
       collectors:
         - type: directory
@@ -35,11 +40,17 @@ deptrac:
     # `RasoUserIdentity` adapteri esa aynan shu chegarada turadi.
     Auth:
       - Domain
-    # Laravel — faqat sim-ulash (service provider).
+    # Events ham sof: Redis/Eloquent adapterlari `Laravel` qatlamida turadi.
+    # Auth'ga TEGMAYDI — hodisada foydalanuvchi `sub` (uuid), obyekt emas.
+    Events:
+      - Domain
+    # Laravel — faqat sim-ulash (service provider, adapterlar, console).
     Laravel:
       - Auth
+      - Events
       - Domain
     # Testing prod kodiga suyanadi, aksincha emas.
     Testing:
       - Domain
       - Auth
+      - Events

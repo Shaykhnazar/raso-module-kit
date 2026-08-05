@@ -6,6 +6,8 @@ namespace Raso\ModuleKit\Laravel;
 
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Contracts\Redis\Factory as Redis;
+use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
@@ -16,6 +18,10 @@ use Raso\ModuleKit\Auth\HttpJwksFetcher;
 use Raso\ModuleKit\Auth\JwksFetcher;
 use Raso\ModuleKit\Auth\JwksProvider;
 use Raso\ModuleKit\Auth\TokenVerifier;
+use Raso\ModuleKit\Events\EventPublisher;
+use Raso\ModuleKit\Events\TransactionRunner;
+use Raso\ModuleKit\Laravel\Console\DoctorCommand;
+use Raso\ModuleKit\Laravel\Console\PurgeUserCommand;
 
 /**
  * Modul-servisga auth'ni ulaydi. Modul faqat `.env` ni to'ldiradi:
@@ -55,12 +61,34 @@ final class ModuleKitServiceProvider extends ServiceProvider
             (string) $this->config()->get('module-kit.audience'),
             (int) $this->config()->get('module-kit.leeway', 30),
         ));
+
+        $this->app->bind(EventPublisher::class, fn ($app): RedisStreamPublisher => new RedisStreamPublisher(
+            $app->make(Redis::class),
+            (string) $this->config()->get('module-kit.events.stream', 'raso.events'),
+            (string) $this->config()->get('module-kit.events.redis_connection', 'default'),
+            (int) $this->config()->get('module-kit.events.max_length', 100_000),
+        ));
+
+        $this->app->bind(TransactionRunner::class, fn ($app): IlluminateTransactionRunner => new IlluminateTransactionRunner(
+            $app->make(ConnectionResolverInterface::class),
+        ));
+
+        /*
+         * ⚠️ `ConsumedEvents`, `DeadLetters`, `OutboxStore` va
+         * `UserDeletedListener` ATAYLAB bog'lanmagan — ular modulning O'Z
+         * jadvallariga tayanadi. Modul ularni o'zi bog'laydi; bog'lamasa
+         * `raso:module:doctor` yiqiladi va CI qizil bo'ladi.
+         */
     }
 
     public function boot(Router $router): void
     {
         $router->aliasMiddleware('raso.auth', AuthenticateMiddleware::class);
         $router->aliasMiddleware('raso.scope', ScopeMiddleware::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([PurgeUserCommand::class, DoctorCommand::class]);
+        }
 
         $this->publishes([
             __DIR__.'/../../config/module-kit.php' => $this->app->configPath('module-kit.php'),
