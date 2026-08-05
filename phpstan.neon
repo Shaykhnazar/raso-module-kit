@@ -1,0 +1,8 @@
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+    # Bu paketda Laravel YO'Q — larastan kengaytmasi kerak emas, ya'ni
+    # tekshiruv magic'siz, eng qattiq holatda ishlaydi.
+    ignoreErrors: []

@@ -1,0 +1,24 @@
+# Paketning O'Z chegaralari.
+#
+# `Domain` — sof PHP, hech narsaga suyanmaydi (Symfony\Uid dan tashqari, u
+# vendor va deptrac uni ko'rmaydi). `Testing` Domain'ga suyanadi, teskarisi YO'Q:
+# aks holda test yordamchisi prod kodiga sizib kirardi.
+deptrac:
+  paths:
+    - ./src
+
+  layers:
+    - name: Domain
+      collectors:
+        - type: directory
+          value: 'src/Domain/.*'
+
+    - name: Testing
+      collectors:
+        - type: directory
+          value: 'src/Testing/.*'
+
+  ruleset:
+    Domain: ~
+    Testing:
+      - Domain

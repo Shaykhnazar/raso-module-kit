@@ -1,0 +1,40 @@
+# ŞABLON — modul repolariga nusxa ko'chiriladi va `__CONTEXT__` almashtiriladi.
+#
+# O'LCHOV B — BOUNDED CONTEXT chegaralari.
+#
+# ⚠️ Yangi context qo'shsangiz shu yerga 2 layer (`__X__` va `__X__Domain`) va
+# ruleset yozing, aks holda u chegara tekshiruvidan CHETDA qoladi va buni
+# hech kim sezmaydi.
+#
+# Qoida: context → context faqat `Contracts` (sinxron o'qish) yoki domen event
+# (asinxron, outbox) orqali. Boshqa context'ning `Domain`iga TEGMANG.
+deptrac:
+  paths:
+    - ./src
+
+  layers:
+    - name: __CONTEXT__
+      collectors:
+        - type: directory
+          value: 'src/__CONTEXT__/.*'
+
+    # Boshqa context'lar uchun ochiq yuza — faqat shu ikkisi.
+    - name: PublicSurface
+      collectors:
+        - type: bool
+          must:
+            - type: directory
+              value: 'src/.*/Contracts/.*'
+
+    - name: SharedKernel
+      collectors:
+        - type: directory
+          value: 'src/SharedKernel/.*'
+
+  ruleset:
+    __CONTEXT__:
+      - PublicSurface
+      - SharedKernel
+    PublicSurface:
+      - SharedKernel
+    SharedKernel: ~

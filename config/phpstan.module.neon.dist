@@ -1,0 +1,15 @@
+# ŞABLON — modul repolariga `phpstan.neon` sifatida nusxa ko'chiriladi.
+#
+# Modullar Laravel ilovasi, shuning uchun bu yerda larastan BOR (paketning
+# o'zida yo'q — u sof PHP kutubxonasi).
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 8
+    paths:
+        - src
+        - app
+    excludePaths:
+        - src/*/Infrastructure/Persistence/migrations/*
+    ignoreErrors: []

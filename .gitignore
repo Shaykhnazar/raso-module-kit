@@ -1,0 +1,9 @@
+/vendor/
+/.phpunit.cache/
+/.php-cs-fixer.cache
+/.phpstan.cache/
+/.deptrac.cache
+composer.lock
+.DS_Store
+.idea/
+.vscode/
