@@ -49,6 +49,15 @@ return [
         'redis_connection' => env('RASO_EVENT_REDIS', 'default'),
 
         /*
+         * ⚠️ Consumer group — HAR MODULDA BOSHQACHA bo'lishi SHART.
+         *
+         * Ikki modul bir xil group bilan o'qisa, xabar ular ORASIDA
+         * bo'linadi: chat oladi — calendar olmaydi. `identity.user_deleted`
+         * uchun bu «bir modul o'chirdi, ikkinchisi bilmadi» degani.
+         */
+        'group' => env('RASO_EVENT_GROUP', 'raso-module'),
+
+        /*
          * Stream cheksiz o'smasin. Uzoq muddatli manba — outbox jadvali,
          * stream emas: xabar yetkazilgach unga ehtiyoj qolmaydi.
          */

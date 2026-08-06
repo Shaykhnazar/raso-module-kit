@@ -20,6 +20,7 @@ use Raso\ModuleKit\Auth\JwksProvider;
 use Raso\ModuleKit\Auth\TokenVerifier;
 use Raso\ModuleKit\Events\EventPublisher;
 use Raso\ModuleKit\Events\TransactionRunner;
+use Raso\ModuleKit\Laravel\Console\ConsumeEventsCommand;
 use Raso\ModuleKit\Laravel\Console\DoctorCommand;
 use Raso\ModuleKit\Laravel\Console\PurgeUserCommand;
 
@@ -69,6 +70,20 @@ final class ModuleKitServiceProvider extends ServiceProvider
             (int) $this->config()->get('module-kit.events.max_length', 100_000),
         ));
 
+        /*
+         * Stream o'quvchisi. `consumer` nomi HOST nomidan olinadi —
+         * bir necha worker bir vaqtda ishlaganda ular bir-birining
+         * xabarini tortib olmasin va pending ro'yxati aralashmasin.
+         */
+        $this->app->bind(RedisStreamReader::class, fn ($app): RedisStreamReader => new RedisStreamReader(
+            $app->make(Redis::class),
+            (string) $this->config()->get('module-kit.events.stream', 'raso.events'),
+            // Group — MODUL nomi: har modul o'z nusxasini oladi.
+            (string) $this->config()->get('module-kit.events.group', 'raso-module'),
+            (string) (gethostname() ?: 'worker'),
+            (string) $this->config()->get('module-kit.events.redis_connection', 'default'),
+        ));
+
         $this->app->bind(TransactionRunner::class, fn ($app): IlluminateTransactionRunner => new IlluminateTransactionRunner(
             $app->make(ConnectionResolverInterface::class),
         ));
@@ -87,7 +102,7 @@ final class ModuleKitServiceProvider extends ServiceProvider
         $router->aliasMiddleware('raso.scope', ScopeMiddleware::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([PurgeUserCommand::class, DoctorCommand::class]);
+            $this->commands([PurgeUserCommand::class, DoctorCommand::class, ConsumeEventsCommand::class]);
         }
 
         $this->publishes([
