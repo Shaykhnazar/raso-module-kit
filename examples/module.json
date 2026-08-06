@@ -1,0 +1,27 @@
+{
+    "_comment": "Har modul repo'sining ILDIZIDA shu fayl turadi. Core uni `php artisan raso:module:register <yo'l>` bilan o'qiydi (idempotent — har deploy'da ishlatilsin).",
+
+    "code": "chat",
+    "title": "Raso Chat",
+    "kind": "service",
+
+    "_comment_base_url": "Modulning tashqi manzili. HTTPS majburiy (http faqat localhost uchun) — token va foydalanuvchi ma'lumoti shu manzilga boradi.",
+    "base_url": "https://chat.raso.uz",
+
+    "_comment_redirect_uris": "⚠️ To'liq, ANIQ manzillar. Wildcard (`*`) va fragment (`#`) rad etiladi: ular bilan hujumchi authorization code'ni o'z manziliga oldirib hisobni egallaydi.",
+    "redirect_uris": [
+        "https://chat.raso.uz/auth/callback"
+    ],
+
+    "_comment_scopes": "Modul so'raydigan ruxsatlar. Core `config/oidc.php` da e'lon qilinganlaridan tashqarisi berilmaydi. Monolog xom matni va psixotest javoblari uchun scope YO'Q va bo'lmaydi.",
+    "scopes": [
+        "openid",
+        "profile",
+        "chat:read",
+        "chat:write"
+    ],
+
+    "health_url": "https://chat.raso.uz/health",
+    "logout_url": "https://chat.raso.uz/auth/logout",
+    "min_version": "1.0.0"
+}
