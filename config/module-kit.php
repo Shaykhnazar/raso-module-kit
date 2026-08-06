@@ -9,8 +9,14 @@ return [
     'issuer' => env('RASO_ISSUER', 'https://api.raso.uz'),
 
     /*
-     * Shu modulning kaliti (`modules.code`). Token `aud` i shunga teng bo'lmasa
-     * rad etiladi — ya'ni chat uchun berilgan token calendar'da ISHLAMAYDI.
+     * Token `aud` i shunga teng bo'lmasa rad etiladi — ya'ni chat uchun
+     * berilgan token calendar'da ISHLAMAYDI.
+     *
+     * ⚠️ HOZIRCHA bu — shu modulning **OAuth klient identifikatori**
+     * (`oauth_clients.id`), `modules.code` EMAS. Sabab: core (MP-07)
+     * `aud` ga league standarti bo'yicha klient id'sini qo'yadi.
+     * Barqaror `modules.code` MP-10 (modul katalogi) bilan keladi va
+     * o'shanda bu yerga ham o'zgartirish kerak bo'ladi.
      */
     'audience' => env('RASO_MODULE_KEY'),
 
