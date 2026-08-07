@@ -18,6 +18,7 @@ use Raso\ModuleKit\Auth\HttpJwksFetcher;
 use Raso\ModuleKit\Auth\JwksFetcher;
 use Raso\ModuleKit\Auth\JwksProvider;
 use Raso\ModuleKit\Auth\TokenVerifier;
+use Raso\ModuleKit\Events\DeletionConfirmer;
 use Raso\ModuleKit\Events\EventPublisher;
 use Raso\ModuleKit\Events\TransactionRunner;
 use Raso\ModuleKit\Laravel\Console\ConsumeEventsCommand;
@@ -39,6 +40,8 @@ final class ModuleKitServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../../config/module-kit.php', 'module-kit');
+
+        $this->registerEventConnection();
 
         $this->app->singleton(JwksFetcher::class, fn ($app): HttpJwksFetcher => new HttpJwksFetcher(
             $app->make(Http::class),
@@ -64,10 +67,18 @@ final class ModuleKitServiceProvider extends ServiceProvider
             (int) $this->config()->get('module-kit.leeway', 30),
         ));
 
+        $this->app->bind(DeletionConfirmer::class, fn ($app): HttpDeletionConfirmer => new HttpDeletionConfirmer(
+            $app->make(Http::class),
+            (string) $this->config()->get('module-kit.issuer'),
+            (string) $this->config()->get('module-kit.client_id'),
+            (string) $this->config()->get('module-kit.client_secret'),
+            (int) $this->config()->get('module-kit.jwks_timeout', 3),
+        ));
+
         $this->app->bind(EventPublisher::class, fn ($app): RedisStreamPublisher => new RedisStreamPublisher(
             $app->make(Redis::class),
             (string) $this->config()->get('module-kit.events.stream', 'raso.events'),
-            (string) $this->config()->get('module-kit.events.redis_connection', 'default'),
+            (string) $this->config()->get('module-kit.events.redis_connection', 'raso_events'),
             (int) $this->config()->get('module-kit.events.max_length', 100_000),
         ));
 
@@ -82,7 +93,7 @@ final class ModuleKitServiceProvider extends ServiceProvider
             // Group — MODUL nomi: har modul o'z nusxasini oladi.
             (string) $this->config()->get('module-kit.events.group', 'raso-module'),
             (string) (gethostname() ?: 'worker'),
-            (string) $this->config()->get('module-kit.events.redis_connection', 'default'),
+            (string) $this->config()->get('module-kit.events.redis_connection', 'raso_events'),
         ));
 
         $this->app->bind(TransactionRunner::class, fn ($app): IlluminateTransactionRunner => new IlluminateTransactionRunner(
@@ -95,6 +106,37 @@ final class ModuleKitServiceProvider extends ServiceProvider
          * jadvallariga tayanadi. Modul ularni o'zi bog'laydi; bog'lamasa
          * `raso:module:doctor` yiqiladi va CI qizil bo'ladi.
          */
+    }
+
+    /**
+     * Hodisa stream'i uchun PREFIKSSIZ Redis ulanishini ro'yxatga qo'yadi.
+     *
+     * ⚠️ Laravel'ning `default` ulanishi kalitlarga `APP_NAME` dan olingan
+     * prefiks qo'yadi. Shu sabab core `muvaffaqiyat-os-database-raso.events`
+     * ga yozib, modul `raso-kalendar-database-raso.events` ni o'qirdi —
+     * ikkalasi HECH QACHON uchrashmasdi va hech qanday xato ham chiqmasdi.
+     * Stream nomi hamma servisda AYNAN bir xil bo'lishi shart.
+     *
+     * Ulanish `default` sozlamalaridan nusxa oladi: modul faqat oddiy
+     * `REDIS_*` o'zgaruvchilarini to'ldirishi kifoya. Ilova o'zi shu nomli
+     * ulanishni e'lon qilgan bo'lsa, TEGILMAYDI.
+     */
+    private function registerEventConnection(): void
+    {
+        $config = $this->config();
+        $name = (string) $config->get('module-kit.events.redis_connection', 'raso_events');
+
+        if ($config->get("database.redis.{$name}") !== null) {
+            return;
+        }
+
+        $default = $config->get('database.redis.default');
+
+        if (! is_array($default)) {
+            return;
+        }
+
+        $config->set("database.redis.{$name}", [...$default, 'options' => ['prefix' => '']]);
     }
 
     public function boot(Router $router): void

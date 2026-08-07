@@ -39,7 +39,8 @@ final readonly class RedisStreamReader
     public function ensureGroup(): void
     {
         try {
-            $this->connection()->command('xgroup', ['CREATE', $this->stream, $this->group, '0', 'MKSTREAM']);
+            // phpredis imzosi: xGroup(amal, kalit, group, id, mkStream).
+            $this->connection()->command('xgroup', ['CREATE', $this->stream, $this->group, '0', true]);
         } catch (Throwable $e) {
             // `BUSYGROUP` — group allaqachon bor, bu NORMAL holat.
             if (! str_contains($e->getMessage(), 'BUSYGROUP')) {
@@ -56,11 +57,17 @@ final readonly class RedisStreamReader
     public function read(int $limit = 50, int $blockMilliseconds = 5000): array
     {
         /** @var mixed $raw */
+        /*
+         * ⚠️ phpredis imzosi: xReadGroup(group, consumer, [stream => id],
+         * count, block). Redis protokoli shaklida (`GROUP ... STREAMS ...`)
+         * yozsak, phpredis argumentlarni boshqacha o'qib xato beradi.
+         */
         $raw = $this->connection()->command('xreadgroup', [
-            'GROUP', $this->group, $this->consumer,
-            'COUNT', $limit,
-            'BLOCK', $blockMilliseconds,
-            'STREAMS', $this->stream, '>',
+            $this->group,
+            $this->consumer,
+            [$this->stream => '>'],
+            $limit,
+            $blockMilliseconds,
         ]);
 
         return $this->decode($raw);
@@ -78,10 +85,12 @@ final readonly class RedisStreamReader
     public function readPending(int $limit = 50): array
     {
         /** @var mixed $raw */
+        // `0` — shu consumer'ga yetkazilgan, ACK qilinmagan xabarlar.
         $raw = $this->connection()->command('xreadgroup', [
-            'GROUP', $this->group, $this->consumer,
-            'COUNT', $limit,
-            'STREAMS', $this->stream, '0',
+            $this->group,
+            $this->consumer,
+            [$this->stream => '0'],
+            $limit,
         ]);
 
         return $this->decode($raw);
@@ -89,7 +98,8 @@ final readonly class RedisStreamReader
 
     public function acknowledge(string $streamId): void
     {
-        $this->connection()->command('xack', [$this->stream, $this->group, $streamId]);
+        // ⚠️ phpredis'da id'lar MASSIV bo'lishi shart, satr emas.
+        $this->connection()->command('xack', [$this->stream, $this->group, [$streamId]]);
     }
 
     /**

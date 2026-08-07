@@ -8,7 +8,9 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Config\Repository as Config;
 use Raso\ModuleKit\Events\ConsumedEvents;
 use Raso\ModuleKit\Events\DeadLetters;
+use Raso\ModuleKit\Events\DeletionConfirmer;
 use Raso\ModuleKit\Events\UserDeletedListener;
+use ReflectionProperty;
 use Throwable;
 
 /**
@@ -36,6 +38,8 @@ final class DoctorCommand extends Command
             }
         }
 
+        $problems = [...$problems, ...$this->deletionConfirmationProblems()];
+
         /** @var Config $config */
         $config = $this->laravel->make(Config::class);
 
@@ -60,6 +64,42 @@ final class DoctorCommand extends Command
         $this->info('✓ Modul kontrakti bajarilgan.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * O'chirish TASDIQI haqiqatan ulanganini tekshiradi.
+     *
+     * ⚠️ Bog'lanish borligi yetarli emas: modul `UserDeletedListener` ni
+     * kengaytirib `parent::__construct()` ni chaqirmasa, tasdiqlovchi
+     * `null` bo'lib qoladi va modul ma'lumotni o'chirsa ham core buni
+     * bilmasdi — tilxat admin hisobotida abadiy «kutilmoqda» bo'lardi.
+     * Bu bitta unutilgan qator, shuning uchun uni odam emas, CI ushlaydi.
+     *
+     * @return list<string>
+     */
+    private function deletionConfirmationProblems(): array
+    {
+        try {
+            $listener = $this->laravel->make(UserDeletedListener::class);
+        } catch (Throwable) {
+            // Bog'lanish yo'qligi yuqorida allaqachon qayd etilgan.
+            return [];
+        }
+
+        $confirmer = (new ReflectionProperty(UserDeletedListener::class, 'confirmer'))
+            ->getValue($listener);
+
+        if ($confirmer instanceof DeletionConfirmer) {
+            return [];
+        }
+
+        return [
+            sprintf(
+                "%s tasdiqlovchisiz qurilgan — o'chirish tilxati core'ga YETMAYDI ".
+                '(konstruktorda `parent::__construct($confirmer)` chaqirilganini tekshiring)',
+                $listener::class,
+            ),
+        ];
     }
 
     /** @return array<class-string, string> */

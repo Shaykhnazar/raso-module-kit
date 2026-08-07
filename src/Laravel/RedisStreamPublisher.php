@@ -40,11 +40,15 @@ final readonly class RedisStreamPublisher implements EventPublisher
         }
 
         try {
+            /*
+             * ⚠️ Argument tartibi phpredis'ning `xAdd` IMZOSI bo'yicha:
+             * (kalit, id, maydonlar, maxlen, taqribiymi). Redis protokoli
+             * shaklida (`MAXLEN ~ N *`) yozsak, phpredis uni maydon deb
+             * qabul qilib xato beradi — soxta publisher'li unit testda bu
+             * KO'RINMAYDI, faqat jonli Redis'da chiqadi.
+             */
             $this->redis->connection($this->connection)->command('xadd', [
                 $this->stream,
-                'MAXLEN',
-                '~',
-                $this->maxLength,
                 '*',
                 [
                     'id' => $message->id,
@@ -52,6 +56,10 @@ final readonly class RedisStreamPublisher implements EventPublisher
                     'payload' => $payload,
                     'occurred_at' => $message->occurredAt->format(DATE_ATOM),
                 ],
+                $this->maxLength,
+                // Taqribiy kesish — aniq MAXLEN har XADD'da stream'ni
+                // to'liq kesib, yozishni sekinlashtirardi.
+                true,
             ]);
         } catch (Throwable $e) {
             throw PublishFailed::forStream($this->stream, $e);

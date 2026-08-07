@@ -38,6 +38,18 @@ return [
     /* Soat farqi uchun bag'rikenglik (sekund). */
     'leeway' => (int) env('RASO_JWT_LEEWAY', 30),
 
+    /*
+     * Modulning O'Z OAuth credentials'i — foydalanuvchi nomidan EMAS,
+     * servis nomidan chaqiriladigan endpointlar uchun (hozircha «meni
+     * unut» tilxatini tasdiqlash, MP-11).
+     *
+     * `client_id` odatda `audience` bilan bir xil, lekin ataylab alohida:
+     * `audience` MP-10 dan keyin barqaror `modules.code` ga o'tadi.
+     */
+    'client_id' => env('RASO_MODULE_CLIENT_ID', env('RASO_MODULE_KEY')),
+
+    'client_secret' => env('RASO_MODULE_SECRET'),
+
     'events' => [
         /*
          * Servislararo umumiy Redis Stream. Hamma modul shu stream'ni o'qiydi,
@@ -46,7 +58,18 @@ return [
          */
         'stream' => env('RASO_EVENT_STREAM', 'raso.events'),
 
-        'redis_connection' => env('RASO_EVENT_REDIS', 'default'),
+        /*
+         * ⚠️ PREFIKSSIZ ulanish bo'lishi SHART. Laravel'ning `default`
+         * ulanishi kalitlarga `APP_NAME` dan olingan prefiks qo'yadi, ya'ni
+         * core `muvaffaqiyat-os-database-raso.events` ga yozib, modul
+         * `raso-kalendar-database-raso.events` ni o'qirdi — ikkalasi HECH
+         * QACHON uchrashmasdi va hech qanday xato ham chiqmasdi.
+         *
+         * `ModuleKitServiceProvider` shu nomdagi ulanishni bo'sh prefiks
+         * bilan o'zi ro'yxatga qo'yadi, modul `config/database.php` iga
+         * tegish shart emas.
+         */
+        'redis_connection' => env('RASO_EVENT_REDIS', 'raso_events'),
 
         /*
          * ⚠️ Consumer group — HAR MODULDA BOSHQACHA bo'lishi SHART.
