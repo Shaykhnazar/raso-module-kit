@@ -23,6 +23,7 @@ use Raso\ModuleKit\Events\TransactionRunner;
 use Raso\ModuleKit\Laravel\Console\ConsumeEventsCommand;
 use Raso\ModuleKit\Laravel\Console\DoctorCommand;
 use Raso\ModuleKit\Laravel\Console\PurgeUserCommand;
+use Raso\ModuleKit\Laravel\Console\RelayOutboxCommand;
 
 /**
  * Modul-servisga auth'ni ulaydi. Modul faqat `.env` ni to'ldiradi:
@@ -102,7 +103,12 @@ final class ModuleKitServiceProvider extends ServiceProvider
         $router->aliasMiddleware('raso.scope', ScopeMiddleware::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([PurgeUserCommand::class, DoctorCommand::class, ConsumeEventsCommand::class]);
+            $this->commands([
+                PurgeUserCommand::class,
+                DoctorCommand::class,
+                ConsumeEventsCommand::class,
+                RelayOutboxCommand::class,
+            ]);
         }
 
         $this->publishes([

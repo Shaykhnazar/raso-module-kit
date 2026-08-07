@@ -23,13 +23,18 @@ final readonly class OutboxRelay
         private int $maxAttempts = 5,
     ) {}
 
-    public function flush(): RelayReport
+    /**
+     * @param  int|null  $limit  bir o'tishdagi chegara (sukut — konstruktordagi)
+     */
+    public function flush(?int $limit = null): RelayReport
     {
+        $limit ??= $this->batchSize;
+
         $published = 0;
         $failed = 0;
         $exhausted = 0;
 
-        foreach ($this->store->pending($this->batchSize) as $message) {
+        foreach ($this->store->pending($limit) as $message) {
             try {
                 $this->publisher->publish($message);
                 $this->store->markPublished($message->id);
