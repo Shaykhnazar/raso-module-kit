@@ -43,6 +43,16 @@ final class ModuleKitServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../../config/module-kit.php', 'module-kit');
 
+        /*
+         * MP-29a — CORS. Shell modul widget'ini BRAUZERDAN o'qiydi va
+         * bu cross-origin so'rov.
+         *
+         * ⚠️ `mergeConfigFrom` — modulning O'Z `config/cors.php` i bo'lsa
+         * u USTUN turadi. Ya'ni bu sukut bo'yicha xavfsiz holat, majburiy
+         * emas: modul kerak bo'lsa o'zgartira oladi.
+         */
+        $this->mergeConfigFrom(__DIR__.'/../../config/module-cors.php', 'cors');
+
         $this->registerEventConnection();
 
         $this->app->singleton(JwksFetcher::class, fn ($app): HttpJwksFetcher => new HttpJwksFetcher(
