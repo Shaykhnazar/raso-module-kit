@@ -17,4 +17,15 @@ interface DeadLetters
 
     /** Admin hisoboti uchun — nechta xabar qayta ishlanmagan. */
     public function count(): int;
+
+    /**
+     * Hodisa nomi bo'yicha taqsimot (MP-31).
+     *
+     * ⚠️ «Nechta» YETARLI EMAS: qaysi hodisa yiqilayotganini bilmasdan
+     * sababni topib bo'lmaydi. Va eng muhimi — `identity.user_deleted`
+     * o'nta oddiy xato orasida ko'rinmay qolmasligi kerak.
+     *
+     * @return array<string, int> hodisa nomi → qolgan xabarlar soni
+     */
+    public function byName(): array;
 }

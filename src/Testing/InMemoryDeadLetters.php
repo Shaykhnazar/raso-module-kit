@@ -21,4 +21,16 @@ final class InMemoryDeadLetters implements DeadLetters
     {
         return count($this->records);
     }
+
+    public function byName(): array
+    {
+        $counts = [];
+
+        foreach ($this->records as $record) {
+            $name = $record['message']->name;
+            $counts[$name] = ($counts[$name] ?? 0) + 1;
+        }
+
+        return $counts;
+    }
 }

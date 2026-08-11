@@ -22,9 +22,11 @@ use Raso\ModuleKit\Events\DeletionConfirmer;
 use Raso\ModuleKit\Events\EventPublisher;
 use Raso\ModuleKit\Events\TransactionRunner;
 use Raso\ModuleKit\Laravel\Console\ConsumeEventsCommand;
+use Raso\ModuleKit\Laravel\Console\DeadLetterReportCommand;
 use Raso\ModuleKit\Laravel\Console\DoctorCommand;
 use Raso\ModuleKit\Laravel\Console\PurgeUserCommand;
 use Raso\ModuleKit\Laravel\Console\RelayOutboxCommand;
+use Raso\ModuleKit\Laravel\Http\HealthController;
 
 /**
  * Modul-servisga auth'ni ulaydi. Modul faqat `.env` ni to'ldiradi:
@@ -144,12 +146,23 @@ final class ModuleKitServiceProvider extends ServiceProvider
         $router->aliasMiddleware('raso.auth', AuthenticateMiddleware::class);
         $router->aliasMiddleware('raso.scope', ScopeMiddleware::class);
 
+        /*
+         * MP-31 — `/health`. Paket O'ZI ro'yxatga qo'yadi: har modul uni
+         * qaytadan yozsa, biri albatta boshqacha bo'lardi va monitoring
+         * modullarni bir xil o'qiy olmasdi.
+         *
+         * ⚠️ AUTH'SIZ va prefikssiz — `module.json` dagi `health_url`
+         * shu manzilni kutadi va uptime tekshiruvi token bilan kelmaydi.
+         */
+        $router->get('/health', HealthController::class);
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 PurgeUserCommand::class,
                 DoctorCommand::class,
                 ConsumeEventsCommand::class,
                 RelayOutboxCommand::class,
+                DeadLetterReportCommand::class,
             ]);
         }
 
