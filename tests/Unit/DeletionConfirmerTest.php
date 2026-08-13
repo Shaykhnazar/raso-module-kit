@@ -162,7 +162,7 @@ it('boshqa xato javobda istisno tashlaydi', function (): void {
         ->toThrow(RuntimeException::class);
 });
 
-it('issuer oxiridagi slash ikkilanmaydi', function (): void {
+it('manzil oxiridagi slash ikkilanmaydi', function (): void {
     $http = new Http;
     $http->fake(['*' => $http->response([])]);
 

@@ -46,6 +46,18 @@ return [
      * `client_id` odatda `audience` bilan bir xil, lekin ataylab alohida:
      * `audience` MP-10 dan keyin barqaror `modules.code` ga o'tadi.
      */
+    /*
+     * Core API'sining MANZILI.
+     *
+     * ⚠️ `issuer` dan ALOHIDA. `issuer` — OIDC IDENTIFIKATORI: u token
+     * `iss` claim'i bilan aynan solishtiriladi va manzil bo'lishi SHART
+     * EMAS. Ikkalasini bir deb hisoblaganda servisga so'rov boshqa portda
+     * turgan begona ilovaga ketib qoldi — u 404 qaytardi, kod esa buni
+     * «allaqachon tasdiqlangan» deb qabul qildi (lokal sinovda topildi).
+     * Prod'da ikkalasi bir xil, shuning uchun sukut — `issuer`.
+     */
+    'core_url' => env('RASO_CORE_URL', env('RASO_ISSUER', 'https://api.raso.uz')),
+
     'client_id' => env('RASO_MODULE_CLIENT_ID', env('RASO_MODULE_KEY')),
 
     'client_secret' => env('RASO_MODULE_SECRET'),

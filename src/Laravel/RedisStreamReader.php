@@ -56,19 +56,28 @@ final readonly class RedisStreamReader
      */
     public function read(int $limit = 50, int $blockMilliseconds = 5000): array
     {
-        /** @var mixed $raw */
         /*
          * ⚠️ phpredis imzosi: xReadGroup(group, consumer, [stream => id],
          * count, block). Redis protokoli shaklida (`GROUP ... STREAMS ...`)
          * yozsak, phpredis argumentlarni boshqacha o'qib xato beradi.
+         *
+         * ⚠️ `block <= 0` da BLOCK argumenti UMUMAN berilmaydi.
+         *
+         * Redis'da `BLOCK 0` — «cheksiz kut», «kutma» EMAS. Bir martalik
+         * rejimda 0 uzatilganda buyruq abadiy bloklanib, soket o'qish
+         * timeout'iga urilardi va `RedisException: read error on
+         * connection` bilan yiqilardi — bo'sh navbatda HAR SAFAR. Navbatda
+         * xabar turgan paytda bu ko'rinmasdi, shuning uchun jonli sinovda
+         * topildi.
          */
-        $raw = $this->connection()->command('xreadgroup', [
-            $this->group,
-            $this->consumer,
-            [$this->stream => '>'],
-            $limit,
-            $blockMilliseconds,
-        ]);
+        $arguments = [$this->group, $this->consumer, [$this->stream => '>'], $limit];
+
+        if ($blockMilliseconds > 0) {
+            $arguments[] = $blockMilliseconds;
+        }
+
+        /** @var mixed $raw */
+        $raw = $this->connection()->command('xreadgroup', $arguments);
 
         return $this->decode($raw);
     }

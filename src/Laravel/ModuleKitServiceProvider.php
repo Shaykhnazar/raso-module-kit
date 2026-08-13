@@ -11,6 +11,7 @@ use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Http\Client\Factory as Http;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use Psr\Log\LoggerInterface;
 use Raso\ModuleKit\Auth\CachedJwksProvider;
 use Raso\ModuleKit\Auth\Http\AuthenticateMiddleware;
 use Raso\ModuleKit\Auth\Http\ScopeMiddleware;
@@ -81,10 +82,12 @@ final class ModuleKitServiceProvider extends ServiceProvider
 
         $this->app->bind(DeletionConfirmer::class, fn ($app): HttpDeletionConfirmer => new HttpDeletionConfirmer(
             $app->make(Http::class),
-            (string) $this->config()->get('module-kit.issuer'),
+            // ⚠️ `core_url`, `issuer` EMAS — issuer manzil bo'lishi shart emas.
+            (string) $this->config()->get('module-kit.core_url'),
             (string) $this->config()->get('module-kit.client_id'),
             (string) $this->config()->get('module-kit.client_secret'),
             (int) $this->config()->get('module-kit.jwks_timeout', 3),
+            $app->make(LoggerInterface::class),
         ));
 
         $this->app->bind(EventPublisher::class, fn ($app): RedisStreamPublisher => new RedisStreamPublisher(
@@ -148,7 +151,17 @@ final class ModuleKitServiceProvider extends ServiceProvider
             return;
         }
 
-        $config->set("database.redis.{$name}", [...$default, 'options' => ['prefix' => '']]);
+        $config->set("database.redis.{$name}", [
+            ...$default,
+            'options' => ['prefix' => ''],
+            /*
+             * ⚠️ `read_timeout` = 0 — cheksiz. Demon rejimida `XREADGROUP`
+             * `BLOCK` bilan chaqiriladi va soket timeout'i undan qisqa
+             * bo'lsa, ulanish «read error» bilan uzilardi: iste'molchi har
+             * bo'sh tsiklda yiqilardi.
+             */
+            'read_timeout' => 0,
+        ]);
     }
 
     public function boot(Router $router): void

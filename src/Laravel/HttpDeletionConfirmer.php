@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Raso\ModuleKit\Laravel;
 
 use Illuminate\Http\Client\Factory as Http;
+use Psr\Log\LoggerInterface;
 use Raso\ModuleKit\Domain\PublicId;
 use Raso\ModuleKit\Events\DeletionConfirmer;
 use RuntimeException;
@@ -22,15 +23,17 @@ final readonly class HttpDeletionConfirmer implements DeletionConfirmer
 {
     public function __construct(
         private Http $http,
-        private string $issuer,
+        /** Core API'sining manzili — OIDC `issuer` identifikatori EMAS. */
+        private string $coreUrl,
         private string $clientId,
         private string $clientSecret,
         private int $timeout = 3,
+        private ?LoggerInterface $logger = null,
     ) {}
 
     public function confirm(PublicId $userRef, int $purgedRows): void
     {
-        $url = rtrim($this->issuer, '/').'/api/v1/modules/deletion-receipts';
+        $url = rtrim($this->coreUrl, '/').'/api/v1/modules/deletion-receipts';
 
         try {
             $response = $this->http->asJson()
@@ -52,6 +55,18 @@ final readonly class HttpDeletionConfirmer implements DeletionConfirmer
          * xabar abadiy qayta urinilib DLQ ni to'ldirardi.
          */
         if ($response->status() === 404) {
+            /*
+             * ⚠️ OGOHLANTIRISH YOZILADI. 404 haqiqatan «allaqachon
+             * tasdiqlangan» bo'lishi mumkin, lekin manzil noto'g'ri
+             * sozlanganda begona server ham 404 qaytaradi — va tasdiq
+             * jimgina yo'qolardi. Log busiz yagona iz admin hisobotidagi
+             * 24 soatlik kechikish bo'lardi.
+             */
+            $this->logger?->warning("O'chirish tilxati topilmadi (404) — manzil to'g'rimi?", [
+                'url' => $url,
+                'sub' => (string) $userRef,
+            ]);
+
             return;
         }
 
