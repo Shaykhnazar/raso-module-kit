@@ -50,6 +50,17 @@ final class UserDeletionContract
         $seed($userRef);
         $seed($stranger);
 
+        // ⚠️ BEGONANING SANOG'I O'CHIRISHDAN OLDIN OLINADI. Pastda u
+        // «noldan katta» emas, AYNAN SHU SON bilan solishtiriladi —
+        // sababi `remaining` YIG'INDI qaytaradi: modul bir nechta
+        // jadvalini qo'shib beradi. «Noldan katta» tekshiruvi juda keng
+        // o'chirishni NIQOBLAB qo'yardi — begonaning bitta omon qolgan
+        // jadvali qolgan hammasi yo'q qilinganini yashirardi va kontrakt
+        // yashil bo'lib turaverardi. Bu haqiqiy modulda topildi
+        // (preline-crm, ticket 15): `WHERE user_ref` tushib qolganda
+        // kitning o'z tekshiruvi ISHLAMADI.
+        $strangerBefore = self::countFor($remaining, $stranger);
+
         if (self::countFor($remaining, $userRef) === 0) {
             throw new RuntimeException(
                 'Kontrakt testi ishonchsiz: `seed` hech narsa yaratmadi yoki `remaining` 0 qaytardi. '.
@@ -70,9 +81,14 @@ final class UserDeletionContract
 
         // Boshqa odamning ma'lumoti tegilmaganini ham tekshiramiz —
         // «hammasini o'chir» ham xato, va u faqat shu yerda ushlanadi.
-        if (self::countFor($remaining, $stranger) === 0) {
+        $strangerAfter = self::countFor($remaining, $stranger);
+
+        if ($strangerAfter !== $strangerBefore) {
+            $lost = $strangerBefore - $strangerAfter;
+
             throw new RuntimeException(
-                "O'chirish JUDA KENG: begona foydalanuvchining ma'lumoti ham o'chirildi.",
+                "O'chirish JUDA KENG: begona foydalanuvchining {$lost} qatori ham o'chirildi ".
+                "({$strangerBefore} edi, {$strangerAfter} qoldi).",
             );
         }
     }
