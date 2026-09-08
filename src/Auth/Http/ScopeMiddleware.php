@@ -28,11 +28,10 @@ final readonly class ScopeMiddleware
         $user = $request->user();
 
         if (! $user instanceof RasoUserIdentity) {
-            return new JsonResponse(
-                ['message' => 'Autentifikatsiya talab qilinadi.'],
-                Response::HTTP_UNAUTHORIZED,
-                ['WWW-Authenticate' => 'Bearer'],
-            );
+            // 401 javob `raso.auth` niki bilan AYNAN bir xil bo'lishi shart:
+            // klient «token yubormadim» va «scope yetmadi» ni farqlay olishi
+            // uchun shakl emas, STATUS gapiradi (401 va 403).
+            return BearerScheme::unauthorized();
         }
 
         if (! $user->rasoUser->scopes->hasAll(array_values($scopes))) {

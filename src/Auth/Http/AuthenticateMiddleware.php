@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Raso\ModuleKit\Auth\Http;
 
 use Closure;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Raso\ModuleKit\Auth\Exception\TokenRejected;
 use Raso\ModuleKit\Auth\RasoUserIdentity;
@@ -28,10 +27,10 @@ final readonly class AuthenticateMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $this->bearerToken($request);
+        $token = BearerScheme::token($request);
 
         if ($token === null) {
-            return $this->unauthorized();
+            return BearerScheme::unauthorized();
         }
 
         try {
@@ -40,34 +39,12 @@ final readonly class AuthenticateMiddleware
             // ⚠️ Sabab klientga AYTILMAYDI: «imzo noto'g'ri» bilan «kalit
             // topilmadi» ni ajratish hujumchiga tizim haqida ma'lumot beradi.
             // Sabab `TokenRejected::$reason` da — log uchun.
-            return $this->unauthorized();
+            return BearerScheme::unauthorized();
         }
 
         $identity = new RasoUserIdentity($user);
         $request->setUserResolver(static fn (): RasoUserIdentity => $identity);
 
         return $next($request);
-    }
-
-    private function bearerToken(Request $request): ?string
-    {
-        $header = $request->header('Authorization');
-
-        if (! is_string($header) || ! str_starts_with($header, 'Bearer ')) {
-            return null;
-        }
-
-        $token = trim(substr($header, 7));
-
-        return $token === '' ? null : $token;
-    }
-
-    private function unauthorized(): JsonResponse
-    {
-        return new JsonResponse(
-            ['message' => 'Autentifikatsiya talab qilinadi.'],
-            Response::HTTP_UNAUTHORIZED,
-            ['WWW-Authenticate' => 'Bearer'],
-        );
     }
 }
