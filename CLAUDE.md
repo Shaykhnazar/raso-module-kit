@@ -80,12 +80,13 @@ src/Domain/     PublicId · Locale · Scope · VerificationLevel
                 RasoUser · DomainEvent · AggregateRoot
 src/Auth/       TokenVerifier · CachedJwksProvider · HttpJwksFetcher
                 RasoUserIdentity · Http/{Authenticate,Scope}Middleware
+                Http/BearerScheme (token o'qish + yagona 401)
 src/Events/     OutboxRelay · EventConsumer · UserDeletedListener
                 EventNames · portlar (OutboxStore, ConsumedEvents, …)
 src/Laravel/    ModuleKitServiceProvider · RedisStreamPublisher
                 IlluminateTransactionRunner · Console/{Doctor,PurgeUser}
 src/Testing/    AuthKit · EventKit · FakeJwtIssuer · UserDeletionContract
-                InMemory* · RasoUserFactory · helpers.php
+                ModuleWiringContract · InMemory* · RasoUserFactory · helpers.php
 config/         module-kit.php (runtime) + modul shablonlari (.dist)
 tests/Unit/     sof PHP unit testlar (Laravel ilovasi yuklanmaydi)
 ```
