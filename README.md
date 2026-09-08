@@ -57,6 +57,7 @@ Hozircha path repository sifatida (paket hali hech qayerga e'lon qilinmagan):
 | `RasoUserIdentity` | `RasoUser` (sof domen) ↔ Laravel `Authenticatable` ko'prigi |
 | `Http\AuthenticateMiddleware` | `raso.auth` — 401 va `WWW-Authenticate: Bearer` |
 | `Http\ScopeMiddleware` | `raso.scope:chat:write` — yetmasa 403 |
+| `Http\BearerScheme` | Sarlavhadan tokenni o'qish + **401 javobning yagona shakli**. Tekshiruvni BILMAYDI — modulning ikkinchi drayveri (mustaqil rejim, opaque token) ham shundan foydalanadi |
 
 Route'da:
 
@@ -110,9 +111,36 @@ ma'lumoti **tegilmadimi** (juda keng o'chirish ham xato) · test o'zi
 - `AuthKit::make()` — soxta IdP + xotiradagi kesh + verifier, bitta chaqiruvda
 - `EventKit::make()` — xotiradagi outbox, publisher, reestr, DLQ va tranzaksiya (**Redis ham, Postgres ham kerak emas**)
 - `UserDeletionContract::assertPurges()` — «meni unut» kontrakti
+- `ModuleWiringContract::assertWired()` — «modul kit'ga to'g'ri ulanganmi» kontrakti
 - `FakeJwtIssuer` — RSA kalit yasaydi, token imzolaydi, `JwksFetcher` portini bajaradi (**testlar tarmoqqa chiqmaydi**)
 - `RasoUserFactory::make([...])` — determinstik test foydalanuvchisi
 - global `fakeRasoUser([...])` — composer `autoload.files` orqali hamma joyda
+
+#### Sim-ulash kontrakt testi — har modulda majburiy
+
+```php
+it('modul kit ga to\'g\'ri ulangan', function (): void {
+    ModuleWiringContract::assertWired(
+        app: $this->app,
+        scope: 'chat:read',
+        consumerGroup: 'chat',
+    );
+});
+```
+
+Kontrakt tekshiradi: kit bog'laydigan portlar konteynerdan **olinadimi** ·
+`raso.auth`/`raso.scope` taxalluslari **o'z klasslariga** ulanganmi ·
+`issuer`/`aud`/`jwks_uri` **to'ldirilganmi** · consumer group modulniki va
+**kit sukuti EMASMI** · `/health` **auth'siz** ochiqmi · testlar tarmoqqa
+chiqmasdan token tekshira oladimi va scope **jimgina kengaymayaptimi**.
+
+Mustaqil rejimdagi modul `raso.auth` ortida o'z drayverini tutadi —
+`authenticateMiddleware:` bilan aytiladi. `issuer` va `audience` ham
+parametr: kutilma modulniki, kit'niki emas.
+
+⚠️ Bu ro'yxat **kit'da** turadi. Kit yangi bog'lanish qo'shsa, hamma
+modulning kutilmasi bir joyda yangilanadi — ilgari bu test har repoda
+alohida nusxa edi va yangilashni unutgan modul yashil bo'lib turaverardi.
 
 ### `config/` — modul repolariga nusxa ko'chiriladigan shablonlar
 
