@@ -17,16 +17,30 @@ final class KitFakeTableListener extends UserDeletedListener
     /** @var array<string, int> user_ref → qatorlar soni */
     public array $rows = [];
 
-    public function __construct(public bool $purgesEverything = false, public bool $purgesNothing = false) {}
+    /**
+     * IKKINCHI «jadval» — chinakam modulda ular bir nechta bo'ladi va
+     * `remaining` ularni QO'SHIB beradi. Aynan shu yig'indi bir paytlar
+     * juda keng o'chirishni niqoblab qo'ygan edi.
+     *
+     * @var array<string, int>
+     */
+    public array $notes = [];
+
+    public function __construct(
+        public bool $purgesEverything = false,
+        public bool $purgesNothing = false,
+        public bool $purgesEveryonesNotes = false,
+    ) {}
 
     public function seed(PublicId $userRef): void
     {
         $this->rows[$userRef->value] = ($this->rows[$userRef->value] ?? 0) + 3;
+        $this->notes[$userRef->value] = ($this->notes[$userRef->value] ?? 0) + 2;
     }
 
     public function remaining(PublicId $userRef): int
     {
-        return $this->rows[$userRef->value] ?? 0;
+        return ($this->rows[$userRef->value] ?? 0) + ($this->notes[$userRef->value] ?? 0);
     }
 
     protected function purge(PublicId $userRef): int
@@ -36,14 +50,23 @@ final class KitFakeTableListener extends UserDeletedListener
         }
 
         if ($this->purgesEverything) {
-            $count = array_sum($this->rows);
+            $count = array_sum($this->rows) + array_sum($this->notes);
             $this->rows = [];
+            $this->notes = [];
 
             return $count;
         }
 
-        $count = $this->rows[$userRef->value] ?? 0;
-        unset($this->rows[$userRef->value]);
+        $count = ($this->rows[$userRef->value] ?? 0) + ($this->notes[$userRef->value] ?? 0);
+        unset($this->rows[$userRef->value], $this->notes[$userRef->value]);
+
+        if ($this->purgesEveryonesNotes) {
+            // ⚠️ `WHERE user_ref` FAQAT bitta jadvalda tushib qolgan —
+            // eng ko'p uchraydigan xato shakli, va eng qiyin ko'rinadigani:
+            // o'chirilgan odam uchun hammasi to'g'ri ishlagandek ko'rinadi.
+            $count += array_sum($this->notes);
+            $this->notes = [];
+        }
 
         return $count;
     }
@@ -120,3 +143,23 @@ it('`sub` umuman yo\'q bo\'lsa ham rad etadi', function (): void {
         occurredAt: new DateTimeImmutable('now', new DateTimeZone('UTC')),
     ));
 })->throws(InvalidArgumentException::class);
+
+/**
+ * ⚠️ SHU TEST BIR PAYTLAR YO'Q EDI va kontrakt aynan shu holatni
+ * O'TKAZIB YUBORARDI. `remaining` yig'indi qaytargani uchun begonaning
+ * omon qolgan `rows` jadvali uning `notes` jadvali butunlay yo'q
+ * qilinganini yashirardi: eski tekshiruv «noldan katta» edi, endi
+ * O'CHIRISHDAN OLDINGI SON bilan solishtiriladi.
+ *
+ * Haqiqiy modulda topilgan (preline-crm, ticket 15): bitta jadvaldan
+ * `WHERE user_ref` tushib qolganda kit indamay o'taverardi.
+ */
+it('begonaning FAQAT BITTA jadvalini yo\'q qilgan listener ham yiqitadi', function (): void {
+    $listener = new KitFakeTableListener(purgesEveryonesNotes: true);
+
+    UserDeletionContract::assertPurges(
+        listener: $listener,
+        seed: fn (PublicId $u) => $listener->seed($u),
+        remaining: fn (PublicId $u): int => $listener->remaining($u),
+    );
+})->throws(RuntimeException::class, 'JUDA KENG');
