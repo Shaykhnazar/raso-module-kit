@@ -135,6 +135,12 @@ final class ModuleKitServiceProvider extends ServiceProvider
      * Ulanish `default` sozlamalaridan nusxa oladi: modul faqat oddiy
      * `REDIS_*` o'zgaruvchilarini to'ldirishi kifoya. Ilova o'zi shu nomli
      * ulanishni e'lon qilgan bo'lsa, TEGILMAYDI.
+     *
+     * ⚠️ IKKI NARSA NUSXADAN CHIQARILADI — prefiks va BO'LIM RAQAMI.
+     * Ikkalasi ham bir xil nuqsonni tug'diradi (stream ikki tomonda
+     * boshqa joyda bo'lib qoladi, xatosiz), va ikkinchisi aynan shu
+     * tarzda takrorlandi: modulga o'z `REDIS_DB` ini berish stream'ni
+     * ham ko'chirardi.
      */
     private function registerEventConnection(): void
     {
@@ -151,17 +157,10 @@ final class ModuleKitServiceProvider extends ServiceProvider
             return;
         }
 
-        $config->set("database.redis.{$name}", [
-            ...$default,
-            'options' => ['prefix' => ''],
-            /*
-             * ⚠️ `read_timeout` = 0 — cheksiz. Demon rejimida `XREADGROUP`
-             * `BLOCK` bilan chaqiriladi va soket timeout'i undan qisqa
-             * bo'lsa, ulanish «read error» bilan uzilardi: iste'molchi har
-             * bo'sh tsiklda yiqilardi.
-             */
-            'read_timeout' => 0,
-        ]);
+        $config->set("database.redis.{$name}", EventConnection::from(
+            $default,
+            (string) $config->get('module-kit.events.redis_database', '0'),
+        ));
     }
 
     public function boot(Router $router): void

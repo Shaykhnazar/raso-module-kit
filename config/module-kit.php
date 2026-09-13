@@ -84,6 +84,33 @@ return [
         'redis_connection' => env('RASO_EVENT_REDIS', 'raso_events'),
 
         /*
+         * ⚠️ STREAM O'Z BO'LIMIDA — `REDIS_DB` DAN MUSTAQIL.
+         *
+         * Ulanish `default` dan nusxa olinadi, ya'ni AVVAL u bo'lim
+         * raqamini ham meros olardi. Oqibati jimgina va og'ir edi:
+         * modulga o'z Redis bo'limini berish (kesh va navbat
+         * kalitlari boshqa modulniki bilan aralashmasin degan
+         * to'g'ri sabab bilan) stream'ni ham O'SHA bo'limga
+         * ko'chirardi — core esa uni BOSHQA bo'limga yozadi
+         * (`config/database.php` dagi `events` ulanishi,
+         * `REDIS_EVENT_DB`, sukuti `0`).
+         *
+         * Ikkalasi hech qachon uchrashmaydi va HECH QANDAY XATO
+         * chiqmaydi: `XREADGROUP` bo'sh javob qaytaradi, xuddi yangi
+         * xabar yo'qdek. `identity.user_deleted` uchun bu «core
+         * o'chirdi, modul eshitmadi» degani — ya'ni «meni unut»
+         * kontrakti jimgina bajarilmay qoladi.
+         *
+         * Bu prefiks nuqsonining (yuqoridagi izoh) AYNAN o'zi, faqat
+         * boshqa o'lchovda — va u aynan shu tarzda takrorlandi.
+         *
+         * ⚠️ Sukut `0` — core'ning `REDIS_EVENT_DB` sukuti bilan BIR
+         * XIL. Ikkala tomon ham hech narsa sozlamasa, ular baribir
+         * uchrashadi.
+         */
+        'redis_database' => env('RASO_EVENT_REDIS_DB', '0'),
+
+        /*
          * ⚠️ Consumer group — HAR MODULDA BOSHQACHA bo'lishi SHART.
          *
          * Ikki modul bir xil group bilan o'qisa, xabar ular ORASIDA
