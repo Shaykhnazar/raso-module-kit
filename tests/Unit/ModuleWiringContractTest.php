@@ -7,7 +7,6 @@ use Illuminate\Contracts\Config\Repository as ConfigContract;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
-use Illuminate\Support\Arr;
 use Raso\ModuleKit\Auth\Http\AuthenticateMiddleware;
 use Raso\ModuleKit\Auth\Http\BearerScheme;
 use Raso\ModuleKit\Auth\Http\ScopeMiddleware;
@@ -19,89 +18,8 @@ use Raso\ModuleKit\Testing\AuthKit;
 use Raso\ModuleKit\Testing\FakeTransactionRunner;
 use Raso\ModuleKit\Testing\ModuleWiringContract;
 use Raso\ModuleKit\Testing\RecordingPublisher;
+use Raso\ModuleKit\Tests\Support\KitFakeConfig;
 use Symfony\Component\HttpFoundation\Response;
-
-/**
- * Konfiguratsiya reestrining eng sodda ko'rinishi.
- *
- * NEGA `Illuminate\Config\Repository` emas: bu paketda Laravel ilovasi YO'Q
- * va `illuminate/config` o'rnatilmagan. Kontrakt esa faqat interfeysga
- * suyanadi — modul haqiqiy reestrni beradi.
- */
-final class KitFakeConfig implements ConfigContract
-{
-    /** @param array<string, mixed> $items */
-    public function __construct(private array $items = []) {}
-
-    /** @param string $key */
-    public function has($key): bool
-    {
-        return Arr::has($this->items, $key);
-    }
-
-    /**
-     * @param  array<mixed>|string  $key
-     * @param  mixed  $default
-     */
-    public function get($key, $default = null): mixed
-    {
-        if (! is_string($key)) {
-            return $default;
-        }
-
-        return Arr::get($this->items, $key, $default);
-    }
-
-    /** @return array<string, mixed> */
-    public function all(): array
-    {
-        return $this->items;
-    }
-
-    /**
-     * @param  array<string, mixed>|string  $key
-     * @param  mixed  $value
-     */
-    public function set($key, $value = null): void
-    {
-        foreach (is_array($key) ? $key : [$key => $value] as $one => $single) {
-            Arr::set($this->items, $one, $single);
-        }
-    }
-
-    /**
-     * @param  string  $key
-     * @param  mixed  $value
-     */
-    public function prepend($key, $value): void
-    {
-        $items = $this->listAt($key);
-        array_unshift($items, $value);
-        $this->set($key, $items);
-    }
-
-    /**
-     * @param  string  $key
-     * @param  mixed  $value
-     */
-    public function push($key, $value): void
-    {
-        $items = $this->listAt($key);
-        $items[] = $value;
-        $this->set($key, $items);
-    }
-
-    /**
-     * @param  string  $key
-     * @return array<mixed>
-     */
-    private function listAt($key): array
-    {
-        $items = $this->get($key, []);
-
-        return is_array($items) ? $items : [];
-    }
-}
 
 /**
  * Modulning MUSTAQIL rejimdagi drayveri o'rnida turadi: `raso.auth`
